@@ -1,0 +1,19 @@
+# Workflow metadata (optional, for documentation purposes)
+workflow_name: "my-workflow"
+domain: "fdm_slicers"               # fdm_slicers | large_format_pellet | webapp_dashboard | integrations
+slicer_family: "bambu_studio"       # bambu_studio | orcaslicer | creality_print | other
+tested_with: ""                     # e.g. "Bambu Studio v1.9"
+notes: ""
+
+# Workflow inputs (customize for your use case)
+printer_id: ""
+material_id: ""
+gcode_file: ""
+
+# Optional: simulation/optimization settings
+# chamber_temp: 35
+# bed_temp: 60
+# min_velocity_mm: 20
+# max_velocity_mm: 300
+# from_layer: 2
+# to_layer: -1
