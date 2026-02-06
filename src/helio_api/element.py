@@ -26,8 +26,9 @@ except ImportError:
 def load_mesh_csv(csv_path: str) -> list[dict[str, Any]]:
     """Load mesh CSV into a list of element dictionaries.
 
-    Expected CSV columns: index, partition, layer, event, temperature,
-    fan_speed, height, width, environment_temperature, y1, t1, z1, x1, quality
+    Expected CSV columns (order does not matter): index, partition, layer,
+    event, temperature, fan_speed, height, width, environment_temperature,
+    x1, y1, z1, t1, quality
 
     Args:
         csv_path: Path to the mesh CSV file.
@@ -53,7 +54,7 @@ def load_mesh_csv(csv_path: str) -> list[dict[str, Any]]:
                     continue
 
                 element = {
-                    "index": int(idx_val) if idx_val else None,
+                    "index": int(idx_val),
                     "partition": int(val) if (val := row.get("partition")) else None,
                     "layer": int(val) if (val := row.get("layer")) else None,
                     "event": int(val) if (val := row.get("event")) else None,
@@ -158,7 +159,7 @@ def load_thermal_history_csv(csv_path: str) -> list[dict[str, Any]]:
                 for i in range(100):
                     col_name = f"datapoint {i:03d}"
                     val = row.get(col_name)
-                    if val and val != "":
+                    if val:
                         temperatures.append(float(val))
                     else:
                         temperatures.append(None)
@@ -168,7 +169,7 @@ def load_thermal_history_csv(csv_path: str) -> list[dict[str, Any]]:
                 for i in range(100):
                     col_name = f"timestamp {i:03d}"
                     val = row.get(col_name)
-                    if val and val != "":
+                    if val:
                         timestamps.append(float(val))
                     else:
                         timestamps.append(None)

@@ -8,6 +8,7 @@ Based on toolpath_visualizer.py patterns for FDM toolpath visualization.
 from __future__ import annotations
 
 import csv
+import html
 import json
 import os
 
@@ -50,27 +51,25 @@ def generate_mesh_visualization(
                 # Skip rows with missing coordinates
                 if not row.get("x1") or not row.get("y1") or not row.get("z1"):
                     continue
-                if row.get("x1") == "" or row.get("y1") == "" or row.get("z1") == "":
-                    continue
 
                 try:
                     # Handle both 'index' and 'element_index' column names
                     idx_val = row.get("index") or row.get("element_index")
                     element = {
-                        "index": int(idx_val) if idx_val and idx_val != "" else -1,
-                        "partition": int(row["partition"]) if row.get("partition") and row["partition"] != "" else -1,
-                        "layer": int(row["layer"]) if row.get("layer") and row["layer"] != "" else 0,
-                        "event": int(row["event"]) if row.get("event") and row["event"] != "" else 0,
-                        "temperature": float(row["temperature"]) if row.get("temperature") and row["temperature"] != "" else 0,
-                        "fan_speed": float(row["fan_speed"]) if row.get("fan_speed") and row["fan_speed"] != "" else 0,
-                        "height": float(row["height"]) if row.get("height") and row["height"] != "" else 0,
-                        "width": float(row["width"]) if row.get("width") and row["width"] != "" else 0,
-                        "env_temp": float(row["environment_temperature"]) if row.get("environment_temperature") and row["environment_temperature"] != "" else 0,
+                        "index": int(idx_val) if idx_val else -1,
+                        "partition": int(val) if (val := row.get("partition")) else -1,
+                        "layer": int(val) if (val := row.get("layer")) else 0,
+                        "event": int(val) if (val := row.get("event")) else 0,
+                        "temperature": float(val) if (val := row.get("temperature")) else 0,
+                        "fan_speed": float(val) if (val := row.get("fan_speed")) else 0,
+                        "height": float(val) if (val := row.get("height")) else 0,
+                        "width": float(val) if (val := row.get("width")) else 0,
+                        "env_temp": float(val) if (val := row.get("environment_temperature")) else 0,
                         "x": float(row["x1"]),
                         "y": float(row["y1"]),
                         "z": float(row["z1"]),
-                        "t": float(row["t1"]) if row.get("t1") and row["t1"] != "" else 0,
-                        "quality": float(row["quality"]) if row.get("quality") and row["quality"] != "" else 0,
+                        "t": float(val) if (val := row.get("t1")) else 0,
+                        "quality": float(val) if (val := row.get("quality")) else 0,
                     }
                     elements.append(element)
                 except (ValueError, KeyError):
@@ -178,11 +177,12 @@ def _generate_html_template(layer_data: list, max_layer: int, total_points: int,
     """Generate the HTML template with embedded data and Three.js code."""
 
     layer_data_json = json.dumps(layer_data)
+    escaped_title = html.escape(title)
 
     return f'''<!DOCTYPE html>
 <html>
 <head>
-    <title>{title}</title>
+    <title>{escaped_title}</title>
     <style>
         * {{ margin: 0; padding: 0; box-sizing: border-box; }}
         body {{
@@ -332,7 +332,7 @@ def _generate_html_template(layer_data: list, max_layer: int, total_points: int,
 <body>
     <canvas id="canvas"></canvas>
     <div class="header">
-        <h1>{title}</h1>
+        <h1>{escaped_title}</h1>
         <div class="controls">
             <div class="control-group">
                 <label>Layer</label>
