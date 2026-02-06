@@ -19,20 +19,33 @@ if os.path.isdir(os.path.join(_repo_root, "src", "helio_api")):
     sys.path.insert(0, os.path.join(_repo_root, "src"))
 
 from helio_api import (  # noqa: E402
+    HAS_MATPLOTLIB,
     HelioClient,
     build_optimization_settings,
     check_user_quota,
     compute_simulation_settings,
     download_file,
+    download_mesh_as_csv,
     download_thermal_history_as_csv,
+    export_thermal_data_csv,
+    extract_thermal_data,
+    generate_mesh_visualization,
     get_default_optimization_settings,
+    get_element_by_index,
+    get_element_thermal_history,
+    get_elements_by_layer,
+    get_layer_count,
     get_print_priority_options,
     get_recent_runs,
     list_materials,
     list_printers,
+    load_mesh_csv,
     load_pat_token,
+    load_thermal_history_csv,
+    plot_element_thermal_history,
     poll_optimization,
     poll_simulation,
+    print_element_info,
     run_optimization,
     run_simulation,
     upload_and_register_gcode,
@@ -570,6 +583,434 @@ def workflow_thermal_histories(client):
         print(f"  Error: {e}")
 
 
+def workflow_download_mesh(client):
+    """Download mesh file as Parquet (optionally CSV)."""
+    print("\n  Note: Mesh downloads require Helio to enable this feature for your")
+    print("  account. Contact Helio Additive if you receive 404 errors.\n")
+    if not HAS_PYARROW:
+        print("  pyarrow is not installed. Parquet files will be downloaded")
+        print("  but cannot be converted to CSV. Install with: pip install pyarrow\n")
+
+    sim_or_opt_id = input("  Enter simulation or optimization ID: ").strip()
+    if not sim_or_opt_id:
+        return
+
+    is_opt = input("  Is this an optimization? [y/N]: ").strip().lower()
+    is_optimization = is_opt == "y"
+
+    use_optimized = True
+    if is_optimization:
+        use_opt = input("  Download optimized mesh (vs original)? [Y/n]: ").strip().lower()
+        use_optimized = use_opt != "n"
+
+    output_dir = input("  Output directory [.]: ").strip() or "."
+    os.makedirs(output_dir, exist_ok=True)
+
+    try:
+        result = download_mesh_as_csv(
+            client, sim_or_opt_id, output_dir, is_optimization, use_optimized
+        )
+        if result:
+            print(f"\n  Mesh file saved: {result}")
+    except Exception as e:
+        print(f"  Error: {e}")
+
+
+def workflow_generate_visualization():
+    """Generate interactive HTML visualization from mesh CSV."""
+    print("\n  Generate interactive 3D visualization from mesh CSV.\n")
+
+    mesh_csv_path = input("  Path to mesh CSV file: ").strip().strip("'\"")
+    if not mesh_csv_path:
+        return
+    if not os.path.isfile(mesh_csv_path):
+        print(f"  Error: File not found: {mesh_csv_path}")
+        return
+
+    default_output = os.path.splitext(mesh_csv_path)[0] + "_visualization.html"
+    output_html = input(f"  Output HTML path [{default_output}]: ").strip() or default_output
+
+    title = input("  Visualization title [Mesh Visualization]: ").strip() or "Mesh Visualization"
+
+    try:
+        success = generate_mesh_visualization(mesh_csv_path, output_html, title)
+        if success:
+            open_browser = input("\n  Open in browser? [Y/n]: ").strip().lower()
+            if open_browser != "n":
+                import webbrowser
+
+                webbrowser.open(f"file://{os.path.abspath(output_html)}")
+    except Exception as e:
+        print(f"  Error: {e}")
+
+
+def workflow_plot_element_thermal():
+    """Plot thermal history for one or more elements."""
+    print("\n  Plot thermal history for elements.\n")
+
+    if not HAS_MATPLOTLIB:
+        print("  Error: matplotlib is not installed.")
+        print("  Install with: pip install matplotlib")
+        return
+
+    # Load mesh data
+    mesh_csv_path = input("  Path to mesh CSV file: ").strip().strip("'\"")
+    if not mesh_csv_path:
+        return
+    if not os.path.isfile(mesh_csv_path):
+        print(f"  Error: File not found: {mesh_csv_path}")
+        return
+
+    print("  Loading mesh data...")
+    mesh_data = load_mesh_csv(mesh_csv_path)
+    if not mesh_data:
+        print("  Error: Could not load mesh data.")
+        return
+
+    layer_count = get_layer_count(mesh_data)
+    print(f"  Loaded {len(mesh_data)} elements across {layer_count + 1} layers.")
+
+    # Collect element indices
+    elements_to_plot = []
+
+    while True:
+        print("\n  Options:")
+        print("    1. Enter element index directly")
+        print("    2. Browse elements by layer")
+        print("    3. Done selecting elements")
+        choice = input("  Choice [1/2/3]: ").strip()
+
+        if choice == "3":
+            break
+        elif choice == "2":
+            # Browse by layer
+            layer_str = input(f"  Enter layer number (0-{layer_count}): ").strip()
+            try:
+                layer = int(layer_str)
+            except ValueError:
+                print("  Invalid layer number.")
+                continue
+
+            layer_elements = get_elements_by_layer(mesh_data, layer)
+            if not layer_elements:
+                print(f"  No elements found in layer {layer}.")
+                continue
+
+            print(f"\n  Elements in layer {layer} ({len(layer_elements)} total):")
+            # Show first 20 elements
+            for i, elem in enumerate(layer_elements[:20]):
+                print(
+                    f"    Index: {elem['index']:6d}  |  "
+                    f"Partition: {elem['partition']:3d}  |  "
+                    f"Quality: {elem['quality']:.4f}"
+                )
+            if len(layer_elements) > 20:
+                print(f"    ... and {len(layer_elements) - 20} more elements")
+
+            idx_str = input("\n  Enter element index to add (or press Enter to skip): ").strip()
+            if idx_str:
+                try:
+                    element_index = int(idx_str)
+                    element = get_element_by_index(mesh_data, element_index)
+                    if element:
+                        elements_to_plot.append(element_index)
+                        print_element_info(element)
+                    else:
+                        print(f"  Element {element_index} not found.")
+                except ValueError:
+                    print("  Invalid element index.")
+        else:
+            # Direct entry
+            idx_str = input("  Enter element index: ").strip()
+            try:
+                element_index = int(idx_str)
+                element = get_element_by_index(mesh_data, element_index)
+                if element:
+                    elements_to_plot.append(element_index)
+                    print_element_info(element)
+                else:
+                    print(f"  Element {element_index} not found.")
+            except ValueError:
+                print("  Invalid element index.")
+
+        if elements_to_plot:
+            print(f"\n  Currently selected: {elements_to_plot}")
+
+    if not elements_to_plot:
+        print("  No elements selected.")
+        return
+
+    # Determine layer for thermal history
+    # All elements should ideally be from the same layer for thermal history
+    element_layers = set()
+    for idx in elements_to_plot:
+        elem = get_element_by_index(mesh_data, idx)
+        if elem:
+            element_layers.add(elem["layer"])
+
+    if len(element_layers) > 1:
+        print(f"\n  Warning: Selected elements span multiple layers: {element_layers}")
+        print("  Thermal history files are per-layer. You may need multiple files.")
+
+    # Load thermal history
+    thermal_csv_path = input("\n  Path to thermal history CSV file: ").strip().strip("'\"")
+    if not thermal_csv_path:
+        return
+    if not os.path.isfile(thermal_csv_path):
+        print(f"  Error: File not found: {thermal_csv_path}")
+        return
+
+    print("  Loading thermal history data...")
+    thermal_data = load_thermal_history_csv(thermal_csv_path)
+    if not thermal_data:
+        print("  Error: Could not load thermal history data.")
+        return
+    print(f"  Loaded thermal history for {len(thermal_data)} elements.")
+
+    # Extract data for each element
+    plot_data = []
+    for element_index in elements_to_plot:
+        history = get_element_thermal_history(thermal_data, element_index)
+        if history:
+            timestamps, temperatures = extract_thermal_data(history)
+            if timestamps and temperatures:
+                plot_data.append((element_index, timestamps, temperatures))
+                print(f"  Found thermal history for element {element_index}:"
+                      f" {len(timestamps)} datapoints")
+            else:
+                print(f"  Warning: No valid data for element {element_index}")
+        else:
+            print(f"  Warning: Element {element_index} not found in thermal history file.")
+
+    if not plot_data:
+        print("  Error: No thermal data found for selected elements.")
+        return
+
+    # Plot options
+    save_choice = input("\n  Save plot to file? [y/N]: ").strip().lower()
+    output_path = None
+    if save_choice == "y":
+        indices = "_".join(str(e) for e in elements_to_plot[:3])
+        default_name = f"thermal_history_elements_{indices}.png"
+        output_path = input(f"  Output path [{default_name}]: ").strip() or default_name
+
+    title = None
+    if len(plot_data) == 1:
+        title = f"Thermal History - Element {plot_data[0][0]}"
+    else:
+        title = "Thermal History Comparison"
+
+    plot_element_thermal_history(plot_data, output_path, title)
+
+
+def workflow_thermal_exploration(client):
+    """Unified workflow: visualize mesh → click elements → plot thermal history."""
+    print("\n=== Thermal History Exploration ===\n")
+
+    if not HAS_MATPLOTLIB:
+        print("  Error: matplotlib is not installed.")
+        print("  Install with: pip install matplotlib")
+        return
+
+    if not HAS_PYARROW:
+        print("  Warning: pyarrow is not installed. Parquet → CSV conversion may fail.")
+        print("  Install with: pip install pyarrow\n")
+
+    # Step 1: Get simulation/optimization ID
+    sim_or_opt_id = input("  Simulation or optimization ID: ").strip()
+    if not sim_or_opt_id:
+        return
+
+    is_opt = input("  Is this an optimization? [y/N]: ").strip().lower() == "y"
+    use_optimized = True
+    if is_opt:
+        use_optimized = input("  Use optimized data? [Y/n]: ").strip().lower() != "n"
+
+    # Step 2: Download mesh and generate visualization
+    print("\n  Downloading mesh...")
+    output_dir = "."
+    mesh_path = download_mesh_as_csv(client, sim_or_opt_id, output_dir, is_opt, use_optimized)
+    if not mesh_path:
+        print("  Failed to download mesh.")
+        return
+
+    print("\n  Generating visualization...")
+    html_path = os.path.splitext(mesh_path)[0] + "_visualization.html"
+    if not generate_mesh_visualization(mesh_path, html_path, "Thermal Exploration"):
+        print("  Failed to generate visualization.")
+        return
+
+    print("  Opening in browser...")
+    import webbrowser
+
+    webbrowser.open(f"file://{os.path.abspath(html_path)}")
+
+    # Track downloaded thermal histories to avoid re-downloading
+    downloaded_layers = {}  # layer -> csv_path
+    # Track loaded thermal data to avoid re-parsing
+    loaded_thermal_data = {}  # layer -> thermal_data list
+
+    # Step 3: Interactive element selection loop
+    print("\n  Visualization opened in browser.")
+    print("  Click on elements to see their index and layer in the info panel.")
+    print()
+    print("  " + "=" * 50)
+    print("  PLOTTING THERMAL HISTORIES")
+    print("  " + "=" * 50)
+    print()
+    print("  You can plot MULTIPLE elements on the same graph for comparison.")
+    print()
+    print("  How it works:")
+    print("    1. Enter element index and layer (repeat to add more elements)")
+    print("    2. Type 'plot' when ready to generate the graph")
+    print("    3. After plotting, you can export the data as CSV")
+    print()
+    print("  Commands:")
+    print("    <number>  - Add an element to plot (you'll be asked for the layer)")
+    print("    plot      - Generate the plot with all selected elements")
+    print("    export    - Export selected elements' data as CSV (without plotting)")
+    print("    clear     - Clear current selection and start over")
+    print("    quit      - Exit exploration")
+    print()
+
+    while True:
+        # Collect elements to plot together
+        elements_to_plot = []  # list of (element_index, layer, timestamps, temps)
+
+        while True:
+            if elements_to_plot:
+                selected_str = ", ".join(
+                    f"{e[0]}(L{e[1]})" for e in elements_to_plot
+                )
+                print(f"\n  Selected: [{selected_str}]")
+
+            idx_str = input("  > Enter element index (or plot/export/clear/quit): ").strip()
+
+            if idx_str.lower() == "quit":
+                print("\n  Exploration complete.")
+                return
+
+            if idx_str.lower() == "clear":
+                elements_to_plot = []
+                print("  Selection cleared.")
+                continue
+
+            if idx_str.lower() == "plot":
+                break
+
+            if idx_str.lower() == "export":
+                if not elements_to_plot:
+                    print("  No elements selected yet. Add elements first.")
+                    continue
+                # Export without plotting
+                plot_data = [(idx, ts, temps) for idx, layer, ts, temps in elements_to_plot]
+                indices_str = "_".join(str(e[0]) for e in elements_to_plot[:3])
+                if len(elements_to_plot) > 3:
+                    indices_str += f"_and{len(elements_to_plot) - 3}more"
+                default_csv = f"thermal_data_{indices_str}.csv"
+                csv_path = input(f"  Output CSV path [{default_csv}]: ").strip() or default_csv
+                export_thermal_data_csv(plot_data, csv_path)
+                continue
+
+            try:
+                element_index = int(idx_str)
+            except ValueError:
+                print("  Invalid input. Enter element index or command"
+                      " (plot/export/clear/quit).")
+                continue
+
+            layer_str = input("    Layer number: ").strip()
+            try:
+                layer = int(layer_str)
+            except ValueError:
+                print("  Invalid layer number.")
+                continue
+
+            # Download thermal history for this layer if not already downloaded
+            if layer not in downloaded_layers:
+                print(f"\n  Downloading thermal history for layer {layer}...")
+                try:
+                    download_thermal_history_as_csv(
+                        client, layer, is_opt and use_optimized, sim_or_opt_id, output_dir
+                    )
+                    csv_path = os.path.join(output_dir, f"thermal_history_layer{layer}.csv")
+                    # Only cache if file actually exists
+                    if os.path.isfile(csv_path):
+                        downloaded_layers[layer] = csv_path
+                    else:
+                        print("  Download failed or file not available for this layer.")
+                        print("  Tip: Try a different layer - not all layers have"
+                              " thermal history data.")
+                        continue
+                except Exception as e:
+                    print(f"  Error downloading thermal history: {e}")
+                    continue
+            else:
+                print(f"  Using cached thermal history for layer {layer}.")
+
+            # Load thermal history if not already loaded
+            if layer not in loaded_thermal_data:
+                thermal_csv = downloaded_layers.get(layer)
+                if not thermal_csv or not os.path.isfile(thermal_csv):
+                    print(f"  Thermal history file not found for layer {layer}.")
+                    continue
+                thermal_data = load_thermal_history_csv(thermal_csv)
+                if not thermal_data:
+                    print("  Failed to load thermal history data.")
+                    continue
+                loaded_thermal_data[layer] = thermal_data
+            else:
+                thermal_data = loaded_thermal_data[layer]
+
+            # Find element in thermal history
+            history = get_element_thermal_history(thermal_data, element_index)
+            if not history:
+                print(f"  Element {element_index} not found in thermal history for layer {layer}.")
+                print(f"  (Thermal history contains {len(thermal_data)} elements)")
+                continue
+
+            # Extract thermal data
+            timestamps, temps = extract_thermal_data(history)
+            if not timestamps or not temps:
+                print(f"  No valid thermal data for element {element_index}.")
+                continue
+
+            elements_to_plot.append((element_index, layer, timestamps, temps))
+            print(f"  + Added element {element_index} (layer {layer})")
+
+        # Plot all collected elements
+        if not elements_to_plot:
+            print("  No elements selected to plot.")
+            continue
+
+        print(f"\n  Plotting {len(elements_to_plot)} element(s)...")
+        plot_data = [(idx, ts, temps) for idx, layer, ts, temps in elements_to_plot]
+
+        if len(elements_to_plot) == 1:
+            title = f"Element {elements_to_plot[0][0]} (Layer {elements_to_plot[0][1]})"
+        else:
+            title = "Thermal History Comparison"
+
+        plot_element_thermal_history(plot_data, title=title)
+
+        # Offer CSV export after plotting
+        export_choice = input("\n  Export plotted data to CSV? [y/N]: ").strip().lower()
+        if export_choice == "y":
+            indices_str = "_".join(str(e[0]) for e in elements_to_plot[:3])
+            if len(elements_to_plot) > 3:
+                indices_str += f"_and{len(elements_to_plot) - 3}more"
+            default_csv = f"thermal_data_{indices_str}.csv"
+            csv_path = input(f"  Output CSV path [{default_csv}]: ").strip() or default_csv
+            export_thermal_data_csv(plot_data, csv_path)
+
+        # Continue or quit
+        another = input("\n  Plot more elements? [Y/n]: ").strip().lower()
+        if another == "n":
+            break
+
+    print("\n  Exploration complete.")
+
+
 # =============================================================================
 # Main Menu
 # =============================================================================
@@ -587,6 +1028,10 @@ def display_menu():
     print("  7. Check status of existing optimization (by ID)")
     print("  8. View recent runs (history)")
     print("  9. Download thermal histories (Parquet -> CSV)")
+    print("  10. Download mesh file (Parquet -> CSV)")
+    print("  11. Generate mesh visualization (HTML)")
+    print("  12. Plot element thermal history")
+    print("  13. Thermal history exploration (unified)")
     print("  0. Exit")
     print()
 
@@ -665,6 +1110,14 @@ def main():
             workflow_recent_runs(client)
         elif choice == "9":
             workflow_thermal_histories(client)
+        elif choice == "10":
+            workflow_download_mesh(client)
+        elif choice == "11":
+            workflow_generate_visualization()
+        elif choice == "12":
+            workflow_plot_element_thermal()
+        elif choice == "13":
+            workflow_thermal_exploration(client)
         else:
             print("  Invalid option.")
 

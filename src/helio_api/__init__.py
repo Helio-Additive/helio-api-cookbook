@@ -25,10 +25,27 @@ from helio_api.client import (
     print_progress_bar,
 )
 from helio_api.download import (
+    HAS_PYARROW,
     convert_parquet_to_csv,
     download_file,
+    download_mesh_as_csv,
     download_thermal_history_as_csv,
+    get_optimization_mesh_url,
+    get_simulation_mesh_url,
     get_thermal_histories_url,
+)
+from helio_api.element import (
+    HAS_MATPLOTLIB,
+    export_thermal_data_csv,
+    extract_thermal_data,
+    get_element_by_index,
+    get_element_thermal_history,
+    get_elements_by_layer,
+    get_layer_count,
+    load_mesh_csv,
+    load_thermal_history_csv,
+    plot_element_thermal_history,
+    print_element_info,
 )
 from helio_api.optimize import (
     build_optimization_settings,
@@ -50,6 +67,7 @@ from helio_api.upload import (
     upload_and_register_gcode,
     upload_file,
 )
+from helio_api.visualize import generate_mesh_visualization
 
 __all__ = [
     # Client
@@ -87,6 +105,24 @@ __all__ = [
     "get_thermal_histories_url",
     "convert_parquet_to_csv",
     "download_thermal_history_as_csv",
+    "get_simulation_mesh_url",
+    "get_optimization_mesh_url",
+    "download_mesh_as_csv",
+    # Element lookup
+    "load_mesh_csv",
+    "get_element_by_index",
+    "get_elements_by_layer",
+    "get_layer_count",
+    "load_thermal_history_csv",
+    "get_element_thermal_history",
+    "extract_thermal_data",
+    "plot_element_thermal_history",
+    "print_element_info",
+    "export_thermal_data_csv",
+    "HAS_MATPLOTLIB",
+    "HAS_PYARROW",
+    # Visualization
+    "generate_mesh_visualization",
     # Utils
     "print_progress_bar",
     "generate_timestamped_name",

@@ -2,7 +2,7 @@
 Authentication helpers for the Helio Additive API.
 
 Supports loading a Personal Access Token (PAT) from:
-  1. HELIO_PAT environment variable (recommended)
+  1. HELIO_PAT environment variable or .env file (recommended)
   2. ~/.helio_config file
   3. Interactive prompt
 """
@@ -10,9 +10,11 @@ Supports loading a Personal Access Token (PAT) from:
 import os
 import sys
 
+from dotenv import load_dotenv
+
 
 def load_pat_token():
-    """Load PAT token from env var, config file, or interactive prompt.
+    """Load PAT token from env var, .env file, config file, or interactive prompt.
 
     Returns:
         The PAT token string.
@@ -20,7 +22,8 @@ def load_pat_token():
     Raises:
         SystemExit: If no token is provided interactively.
     """
-    # 1. Environment variable
+    # 1. Environment variable / .env file
+    load_dotenv()
     token = os.environ.get("HELIO_PAT", "").strip()
     if token:
         print("PAT loaded from HELIO_PAT environment variable.")

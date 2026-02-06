@@ -12,7 +12,11 @@ import os
 import requests
 
 from helio_api.client import HelioClient, print_progress_bar
-from helio_api.queries import QUERY_THERMAL_HISTORIES
+from helio_api.queries import (
+    QUERY_OPTIMIZATION_MESH,
+    QUERY_SIMULATION_MESH,
+    QUERY_THERMAL_HISTORIES,
+)
 
 # Optional: pyarrow for Parquet-to-CSV conversion
 try:
@@ -139,6 +143,9 @@ def download_thermal_history_as_csv(
     if not url:
         print("  No thermal history URL available.")
         return
+    # Debug: print full URL path (before query params)
+    url_path = url.split("?")[0] if "?" in url else url
+    print(f"  URL path: {url_path}")
 
     parquet_path = os.path.join(output_dir, f"thermal_history_layer{layer}.parquet")
     csv_path = os.path.join(output_dir, f"thermal_history_layer{layer}.csv")
@@ -147,9 +154,12 @@ def download_thermal_history_as_csv(
         download_file(url, parquet_path)
     except RuntimeError as e:
         if "404" in str(e):
-            print(f"  Thermal history data is not available for layer {layer}.")
-            print("  This feature requires Helio to enable thermal histories for")
-            print("  your account. Contact Helio Additive to enable this feature.")
+            print(f"  Thermal history data not found for layer {layer}.")
+            print("  Possible causes:")
+            print("    - Layer number may not have thermal history data")
+            print("    - Try a different layer number (layers are 0-indexed)")
+            print("    - Enterprise feature may not be enabled for this account")
+            print(f"  URL attempted: {url[:100]}...")
             return
         raise
 
@@ -157,3 +167,119 @@ def download_thermal_history_as_csv(
         convert_parquet_to_csv(parquet_path, csv_path)
     else:
         print("  Parquet file saved. Install pyarrow to convert to CSV.")
+
+
+def get_simulation_mesh_url(client: HelioClient, sim_id: str) -> str | None:
+    """Fetch the mesh Parquet file URL from a simulation.
+
+    Args:
+        client: Helio API client.
+        sim_id: The simulation ID.
+
+    Returns:
+        The presigned download URL, or ``None`` if unavailable.
+
+    Raises:
+        RuntimeError: On API error.
+    """
+    data, errors, trace_id = client.query(QUERY_SIMULATION_MESH, {"id": sim_id})
+    if errors:
+        raise RuntimeError(f"SimulationMesh error: {'; '.join(errors)} (trace: {trace_id})")
+    simulation = data.get("simulation")
+    if not simulation:
+        raise RuntimeError(f"Simulation not found: {sim_id}")
+    mesh_url = simulation.get("meshUrl")
+    if not mesh_url:
+        return None
+    return mesh_url.get("url")
+
+
+def get_optimization_mesh_url(
+    client: HelioClient, opt_id: str, use_optimized: bool = True
+) -> str | None:
+    """Fetch the mesh Parquet file URL from an optimization.
+
+    Args:
+        client: Helio API client.
+        opt_id: The optimization ID.
+        use_optimized: If True, return the optimized mesh URL.
+            If False, return the original (pre-optimization) mesh URL.
+
+    Returns:
+        The presigned download URL, or ``None`` if unavailable.
+
+    Raises:
+        RuntimeError: On API error.
+    """
+    data, errors, trace_id = client.query(QUERY_OPTIMIZATION_MESH, {"id": opt_id})
+    if errors:
+        raise RuntimeError(f"OptimizationMesh error: {'; '.join(errors)} (trace: {trace_id})")
+    optimization = data.get("optimization")
+    if not optimization:
+        raise RuntimeError(f"Optimization not found: {opt_id}")
+
+    if use_optimized:
+        mesh_asset = optimization.get("optimizedMeshAsset")
+    else:
+        mesh_asset = optimization.get("originalMeshAsset")
+
+    if not mesh_asset:
+        return None
+    return mesh_asset.get("url")
+
+
+def download_mesh_as_csv(
+    client: HelioClient,
+    sim_or_opt_id: str,
+    output_dir: str = ".",
+    is_optimization: bool = False,
+    use_optimized: bool = True,
+) -> str | None:
+    """Full workflow: fetch mesh URL -> download Parquet -> convert to CSV.
+
+    This is an enterprise feature that requires Helio to enable mesh downloads
+    for your account. Contact Helio Additive if downloads return 404 errors.
+
+    Args:
+        client: Helio API client.
+        sim_or_opt_id: The simulation or optimization ID.
+        output_dir: Directory to save output files.
+        is_optimization: If True, fetch mesh from optimization.
+            If False, fetch mesh from simulation.
+        use_optimized: For optimizations only - if True, download the optimized mesh.
+            If False, download the original (pre-optimization) mesh.
+
+    Returns:
+        Path to the CSV file on success, or ``None`` on failure.
+    """
+    mesh_type = "optimized" if (is_optimization and use_optimized) else "original"
+    print(f"  Fetching mesh URL ({mesh_type})...")
+
+    if is_optimization:
+        url = get_optimization_mesh_url(client, sim_or_opt_id, use_optimized)
+    else:
+        url = get_simulation_mesh_url(client, sim_or_opt_id)
+
+    if not url:
+        print("  No mesh URL available.")
+        return None
+
+    parquet_path = os.path.join(output_dir, f"mesh_{mesh_type}.parquet")
+    csv_path = os.path.join(output_dir, f"mesh_{mesh_type}.csv")
+
+    try:
+        download_file(url, parquet_path)
+    except RuntimeError as e:
+        if "404" in str(e):
+            print("  Mesh data is not available.")
+            print("  This feature requires Helio to enable mesh downloads for")
+            print("  your account. Contact Helio Additive to enable this feature.")
+            return None
+        raise
+
+    if HAS_PYARROW:
+        convert_parquet_to_csv(parquet_path, csv_path)
+        return csv_path
+    else:
+        print("  Parquet file saved. Install pyarrow to convert to CSV.")
+        return parquet_path

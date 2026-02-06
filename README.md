@@ -17,9 +17,52 @@ export HELIO_PAT="your-token-here"
 python workflows/fdm_slicers/bambu_studio/simulate_from_gcode/run.py model.gcode <printer_id> <material_id>
 ```
 
+## Getting Started
+
+### Most Users: Simulate or Optimize G-code
+
+For typical BambuStudio users who want to simulate or optimize G-code:
+
+```bash
+# Simple interactive menu (options 1-8)
+python examples/basic_cli.py
+```
+
+Or use the workflow scripts directly:
+
+```bash
+python workflows/fdm_slicers/bambu_studio/simulate_from_gcode/run.py model.gcode <printer_id> <material_id>
+```
+
+### Advanced Users: Thermal Analysis (Enterprise)
+
+> **Note**: Thermal history and mesh downloads are enterprise features.
+> Contact Helio Additive to discuss access: https://helioadditive.com
+>
+> These features are primarily used for R&D by materials scientists.
+
+For thermal history exploration and analysis:
+
+```bash
+# Step-by-step educational scripts
+python examples/advanced/01_download_mesh.py
+python examples/advanced/02_visualize_mesh.py
+python examples/advanced/03_download_thermal.py
+python examples/advanced/04_plot_thermal.py
+```
+
+Or use the full interactive CLI with all options:
+
+```bash
+python examples/interactive_cli.py
+```
+
+See the [Advanced Guide](examples/advanced/README.md) for detailed instructions.
+
 ## Where to Start
 
-- **Interactive exploration**: `python examples/interactive_cli.py`
+- **Basic CLI**: `python examples/basic_cli.py` - Simple menu for simulation and optimization
+- **Full CLI**: `python examples/interactive_cli.py` - All features including advanced thermal analysis
 - **FDM slicer workflows**: [`workflows/fdm_slicers/bambu_studio/`](workflows/fdm_slicers/bambu_studio/)
 - **Create your own**: Copy [`workflows/_template/`](workflows/_template/) into the appropriate domain folder
 
@@ -48,9 +91,18 @@ helio-api-cookbook/
 │   ├── upload.py               # G-code upload workflow
 │   ├── simulate.py             # Simulation create/poll/results
 │   ├── optimize.py             # Optimization create/poll/results
-│   └── download.py             # File downloads, thermal histories
+│   ├── download.py             # File downloads, thermal histories
+│   ├── element.py              # Element lookup and thermal plotting
+│   └── visualize.py            # 3D mesh visualization generator
 ├── examples/
-│   └── interactive_cli.py      # Full interactive menu-driven tool
+│   ├── basic_cli.py            # Simple CLI (simulation/optimization)
+│   ├── interactive_cli.py      # Full CLI (all features)
+│   └── advanced/               # Step-by-step thermal analysis scripts
+│       ├── README.md           # Guide for advanced features
+│       ├── 01_download_mesh.py
+│       ├── 02_visualize_mesh.py
+│       ├── 03_download_thermal.py
+│       └── 04_plot_thermal.py
 ├── workflows/                  # Portable workflow recipes by domain
 │   ├── _template/              # Starter template for new workflows
 │   ├── fdm_slicers/            # FDM slicer workflows
