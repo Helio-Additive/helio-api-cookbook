@@ -40,10 +40,10 @@ if os.path.isdir(os.path.join(_repo_root, "src", "helio_api")):
 # IMPORTS
 # ============================================================================
 
-from helio_api import (
-    HelioClient,          # The API client - handles authentication and requests
-    load_pat_token,       # Loads your Personal Access Token from env or config
-    download_mesh_as_csv, # Downloads and converts mesh Parquet to CSV
+from helio_api import (  # noqa: E402
+    HelioClient,  # The API client - handles authentication and requests
+    download_mesh_as_csv,  # Downloads and converts mesh Parquet to CSV
+    load_pat_token,  # Loads your Personal Access Token from env or config
 )
 
 # ============================================================================

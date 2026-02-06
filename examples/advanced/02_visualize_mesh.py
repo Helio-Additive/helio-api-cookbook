@@ -38,7 +38,7 @@ if os.path.isdir(os.path.join(_repo_root, "src", "helio_api")):
 # IMPORTS
 # ============================================================================
 
-from helio_api import generate_mesh_visualization
+from helio_api import generate_mesh_visualization  # noqa: E402
 
 # ============================================================================
 # MAIN WORKFLOW

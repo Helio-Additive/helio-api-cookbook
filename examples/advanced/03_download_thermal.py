@@ -40,10 +40,10 @@ if os.path.isdir(os.path.join(_repo_root, "src", "helio_api")):
 # IMPORTS
 # ============================================================================
 
-from helio_api import (
+from helio_api import (  # noqa: E402
     HelioClient,
-    load_pat_token,
     download_thermal_history_as_csv,
+    load_pat_token,
 )
 
 # ============================================================================

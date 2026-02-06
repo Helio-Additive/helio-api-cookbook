@@ -23,7 +23,7 @@ _repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if os.path.isdir(os.path.join(_repo_root, "src", "helio_api")):
     sys.path.insert(0, os.path.join(_repo_root, "src"))
 
-from helio_api import (
+from helio_api import (  # noqa: E402
     HelioClient,
     build_optimization_settings,
     check_user_quota,

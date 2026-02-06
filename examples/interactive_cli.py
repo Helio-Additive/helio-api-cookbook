@@ -775,7 +775,8 @@ def workflow_plot_element_thermal():
             timestamps, temperatures = extract_thermal_data(history)
             if timestamps and temperatures:
                 plot_data.append((element_index, timestamps, temperatures))
-                print(f"  Found thermal history for element {element_index}: {len(timestamps)} datapoints")
+                print(f"  Found thermal history for element {element_index}:"
+                      f" {len(timestamps)} datapoints")
             else:
                 print(f"  Warning: No valid data for element {element_index}")
         else:
@@ -789,7 +790,8 @@ def workflow_plot_element_thermal():
     save_choice = input("\n  Save plot to file? [y/N]: ").strip().lower()
     output_path = None
     if save_choice == "y":
-        default_name = f"thermal_history_elements_{'_'.join(str(e) for e in elements_to_plot[:3])}.png"
+        indices = "_".join(str(e) for e in elements_to_plot[:3])
+        default_name = f"thermal_history_elements_{indices}.png"
         output_path = input(f"  Output path [{default_name}]: ").strip() or default_name
 
     title = None
@@ -913,7 +915,8 @@ def workflow_thermal_exploration(client):
             try:
                 element_index = int(idx_str)
             except ValueError:
-                print("  Invalid input. Enter an element index or a command (plot/export/clear/quit).")
+                print("  Invalid input. Enter element index or command"
+                      " (plot/export/clear/quit).")
                 continue
 
             layer_str = input("    Layer number: ").strip()
@@ -936,7 +939,8 @@ def workflow_thermal_exploration(client):
                         downloaded_layers[layer] = csv_path
                     else:
                         print("  Download failed or file not available for this layer.")
-                        print("  Tip: Try a different layer - not all layers have thermal history data.")
+                        print("  Tip: Try a different layer - not all layers have"
+                              " thermal history data.")
                         continue
                 except Exception as e:
                     print(f"  Error downloading thermal history: {e}")

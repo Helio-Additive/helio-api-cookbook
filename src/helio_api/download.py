@@ -13,9 +13,9 @@ import requests
 
 from helio_api.client import HelioClient, print_progress_bar
 from helio_api.queries import (
-    QUERY_THERMAL_HISTORIES,
-    QUERY_SIMULATION_MESH,
     QUERY_OPTIMIZATION_MESH,
+    QUERY_SIMULATION_MESH,
+    QUERY_THERMAL_HISTORIES,
 )
 
 # Optional: pyarrow for Parquet-to-CSV conversion

@@ -46,7 +46,6 @@ from helio_api.element import (
     plot_element_thermal_history,
     print_element_info,
 )
-from helio_api.visualize import generate_mesh_visualization
 from helio_api.optimize import (
     build_optimization_settings,
     convert_speed_mm_to_m,
@@ -67,6 +66,7 @@ from helio_api.upload import (
     upload_and_register_gcode,
     upload_file,
 )
+from helio_api.visualize import generate_mesh_visualization
 
 __all__ = [
     # Client

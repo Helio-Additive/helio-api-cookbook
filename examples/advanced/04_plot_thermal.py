@@ -40,13 +40,13 @@ if os.path.isdir(os.path.join(_repo_root, "src", "helio_api")):
 # IMPORTS
 # ============================================================================
 
-from helio_api import (
-    load_thermal_history_csv,     # Load the thermal history CSV
+from helio_api import (  # noqa: E402
+    HAS_MATPLOTLIB,  # Check if matplotlib is installed
+    export_thermal_data_csv,  # Export data to CSV
+    extract_thermal_data,  # Extract timestamps and temperatures
     get_element_thermal_history,  # Find a specific element's data
-    extract_thermal_data,         # Extract timestamps and temperatures
-    plot_element_thermal_history, # Create the plot
-    export_thermal_data_csv,      # Export data to CSV
-    HAS_MATPLOTLIB,               # Check if matplotlib is installed
+    load_thermal_history_csv,  # Load the thermal history CSV
+    plot_element_thermal_history,  # Create the plot
 )
 
 # ============================================================================
