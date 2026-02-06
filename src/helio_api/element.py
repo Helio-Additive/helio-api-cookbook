@@ -155,6 +155,8 @@ def load_thermal_history_csv(csv_path: str) -> list[dict[str, Any]]:
                     continue
 
                 # Parse temperatures (datapoint 000 through datapoint 099)
+                # Note: `if val:` is correct here - CSV values are strings, and "0" is truthy.
+                # Only empty string "" is falsy, which correctly maps to None.
                 temperatures = []
                 for i in range(100):
                     col_name = f"datapoint {i:03d}"
