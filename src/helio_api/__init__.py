@@ -25,6 +25,7 @@ from helio_api.client import (
     print_progress_bar,
 )
 from helio_api.download import (
+    HAS_PYARROW,
     convert_parquet_to_csv,
     download_file,
     download_mesh_as_csv,
@@ -119,6 +120,7 @@ __all__ = [
     "print_element_info",
     "export_thermal_data_csv",
     "HAS_MATPLOTLIB",
+    "HAS_PYARROW",
     # Visualization
     "generate_mesh_visualization",
     # Utils

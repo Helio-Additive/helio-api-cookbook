@@ -42,7 +42,7 @@ def load_mesh_csv(csv_path: str) -> list[dict[str, Any]]:
 
     elements = []
     try:
-        with open(csv_path, "r", newline="") as f:
+        with open(csv_path, "r", newline="", encoding="utf-8") as f:
             reader = csv.DictReader(f)
             for row in reader:
                 # Handle both 'index' and 'element_index' column names
@@ -54,23 +54,21 @@ def load_mesh_csv(csv_path: str) -> list[dict[str, Any]]:
 
                 element = {
                     "index": int(idx_val) if idx_val else None,
-                    "partition": int(row["partition"]) if row.get("partition") else None,
-                    "layer": int(row["layer"]) if row.get("layer") else None,
-                    "event": int(row["event"]) if row.get("event") else None,
-                    "temperature": float(row["temperature"]) if row.get("temperature") else None,
-                    "fan_speed": float(row["fan_speed"]) if row.get("fan_speed") else None,
-                    "height": float(row["height"]) if row.get("height") else None,
-                    "width": float(row["width"]) if row.get("width") else None,
+                    "partition": int(val) if (val := row.get("partition")) else None,
+                    "layer": int(val) if (val := row.get("layer")) else None,
+                    "event": int(val) if (val := row.get("event")) else None,
+                    "temperature": float(val) if (val := row.get("temperature")) else None,
+                    "fan_speed": float(val) if (val := row.get("fan_speed")) else None,
+                    "height": float(val) if (val := row.get("height")) else None,
+                    "width": float(val) if (val := row.get("width")) else None,
                     "environment_temperature": (
-                        float(row["environment_temperature"])
-                        if row.get("environment_temperature")
-                        else None
+                        float(val) if (val := row.get("environment_temperature")) else None
                     ),
-                    "x1": float(row["x1"]) if row.get("x1") else None,
-                    "y1": float(row["y1"]) if row.get("y1") else None,
-                    "z1": float(row["z1"]) if row.get("z1") else None,
-                    "t1": float(row["t1"]) if row.get("t1") else None,
-                    "quality": float(row["quality"]) if row.get("quality") else None,
+                    "x1": float(val) if (val := row.get("x1")) else None,
+                    "y1": float(val) if (val := row.get("y1")) else None,
+                    "z1": float(val) if (val := row.get("z1")) else None,
+                    "t1": float(val) if (val := row.get("t1")) else None,
+                    "quality": float(val) if (val := row.get("quality")) else None,
                 }
                 if element["index"] is not None:
                     elements.append(element)
@@ -148,7 +146,7 @@ def load_thermal_history_csv(csv_path: str) -> list[dict[str, Any]]:
 
     histories = []
     try:
-        with open(csv_path, "r", newline="") as f:
+        with open(csv_path, "r", newline="", encoding="utf-8") as f:
             reader = csv.DictReader(f)
             for row in reader:
                 # Skip rows with missing element_index
@@ -177,7 +175,7 @@ def load_thermal_history_csv(csv_path: str) -> list[dict[str, Any]]:
 
                 history = {
                     "element_index": int(row["element_index"]),
-                    "partition": int(row["partition"]) if row.get("partition") else None,
+                    "partition": int(val) if (val := row.get("partition")) else None,
                     "temperatures": temperatures,
                     "timestamps": timestamps,
                 }
@@ -338,7 +336,7 @@ def export_thermal_data_csv(
         ...
     """
     try:
-        with open(output_path, "w", newline="") as f:
+        with open(output_path, "w", newline="", encoding="utf-8") as f:
             writer = csv.writer(f)
             writer.writerow(["element_index", "timestamp_s", "temperature_K"])
             for elem_idx, timestamps, temps in elements_data:

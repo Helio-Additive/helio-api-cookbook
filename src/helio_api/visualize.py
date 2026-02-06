@@ -44,7 +44,7 @@ def generate_mesh_visualization(
     # Load and process mesh data
     elements = []
     try:
-        with open(mesh_csv_path, "r", newline="") as f:
+        with open(mesh_csv_path, "r", newline="", encoding="utf-8") as f:
             reader = csv.DictReader(f)
             for row in reader:
                 # Skip rows with missing coordinates
@@ -158,12 +158,14 @@ def generate_mesh_visualization(
         for ld in layer_data
     )
     print(f"  Processed {len(layers)} layers, {total_points:,} points")
+    if total_points > 100_000:
+        print("  Warning: Large dataset may cause slow browser performance.")
 
     # Generate HTML
     html_content = _generate_html_template(layer_data, max_layer, total_points, title)
 
     try:
-        with open(output_html_path, "w") as f:
+        with open(output_html_path, "w", encoding="utf-8") as f:
             f.write(html_content)
         print(f"  Saved visualization to: {output_html_path}")
         return True
