@@ -268,7 +268,36 @@ query GetRecentRuns {
 QUERY_THERMAL_HISTORIES = """
 query ThermalHistories($isOptimized: Boolean!, $layer: Int!, $optimizationId: ID!) {
   thermalHistories(isOptimized: $isOptimized, layer: $layer, optimizationId: $optimizationId) {
+    assetType
     url
+  }
+}
+"""
+
+# Query to get mesh URL from a simulation
+QUERY_SIMULATION_MESH = """
+query SimulationMesh($id: ID!) {
+  simulation(id: $id) {
+    meshUrl {
+      assetType
+      url
+    }
+  }
+}
+"""
+
+# Query to get mesh URLs from an optimization (both original and optimized)
+QUERY_OPTIMIZATION_MESH = """
+query OptimizationMesh($id: ID!) {
+  optimization(id: $id) {
+    optimizedMeshAsset {
+      assetType
+      url
+    }
+    originalMeshAsset {
+      assetType
+      url
+    }
   }
 }
 """
