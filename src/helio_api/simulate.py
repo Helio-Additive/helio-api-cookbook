@@ -20,13 +20,28 @@ from helio_api.queries import MUTATION_CREATE_SIMULATION, QUERY_POLL_SIMULATION
 
 
 def compute_simulation_settings(
-    chamber_temp: float | None = None, bed_temp: float | None = None
+    chamber_temp: float | None = None,
+    bed_temp: float | None = None,
+    temp_history_datapoints_per_element: int | None = None,
+    temp_history_length_multiplier: int | None = None,
 ) -> dict:
     """Compute temperature simulation settings.
 
     Args:
         chamber_temp: Chamber temperature in Celsius (optional).
         bed_temp: Bed temperature in Celsius (optional).
+        temp_history_datapoints_per_element: Number of datapoints per element
+            in exported thermal history (optional, enterprise feature).
+        temp_history_length_multiplier: Multiplier for thermal history length
+            (optional, enterprise feature).
+
+    Note:
+        Use these overrides only if the default resolution is not high enough.
+        IMPORTANT: For these overrides to take effect, Helio must enable the
+        account-level setting ``disable_elements_active_range: true`` for your
+        account. This is NOT a simulationSettings field — contact Helio Additive
+        to request it. Without this account setting, your override values may
+        have no visible impact on the exported thermal history.
 
     Returns:
         Dict with simulationSettings fields for the API.
@@ -42,6 +57,11 @@ def compute_simulation_settings(
             settings["airTemperatureAboveBuildPlate"] = initial_room_airtemp + 273.15
 
         settings["stabilizedAirTemperature"] = chamber_temp + 273.15
+
+    if temp_history_datapoints_per_element is not None:
+        settings["temperatureHistoryDatapointsPerElement"] = temp_history_datapoints_per_element
+    if temp_history_length_multiplier is not None:
+        settings["temperatureHistoryLengthMultiplier"] = temp_history_length_multiplier
 
     return settings
 
@@ -74,7 +94,7 @@ def create_simulation(
     if errors:
         raise RuntimeError(f"CreateSimulation error: {'; '.join(errors)} (trace: {trace_id})")
 
-    sim = data["createSimulation"]
+    sim = data["createSimulationV2"]
     sim_id = sim["id"]
     print(f"  Simulation created: id={sim_id}, name={sim['name']}")
     return sim_id
@@ -131,6 +151,8 @@ def run_simulation(
     gcode_id: str,
     chamber_temp: float | None = None,
     bed_temp: float | None = None,
+    temp_history_datapoints_per_element: int | None = None,
+    temp_history_length_multiplier: int | None = None,
 ) -> tuple[str, dict, str | None]:
     """Create and poll a simulation, then display results.
 
@@ -139,11 +161,24 @@ def run_simulation(
         gcode_id: Registered G-code ID.
         chamber_temp: Optional chamber temperature in Celsius.
         bed_temp: Optional bed temperature in Celsius.
+        temp_history_datapoints_per_element: Number of datapoints per element
+            in exported thermal history (optional, enterprise feature).
+            See ``compute_simulation_settings`` for the account-level
+            ``disable_elements_active_range`` requirement these overrides depend on.
+        temp_history_length_multiplier: Multiplier for thermal history length
+            (optional, enterprise feature).
+            See ``compute_simulation_settings`` for the account-level
+            ``disable_elements_active_range`` requirement these overrides depend on.
 
     Returns:
         ``(sim_id, result_dict, thermal_url)`` tuple.
     """
-    sim_settings = compute_simulation_settings(chamber_temp, bed_temp)
+    sim_settings = compute_simulation_settings(
+        chamber_temp,
+        bed_temp,
+        temp_history_datapoints_per_element,
+        temp_history_length_multiplier,
+    )
     sim_id = create_simulation(client, gcode_id, sim_settings)
 
     print("  Polling simulation progress...")

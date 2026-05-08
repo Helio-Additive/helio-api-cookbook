@@ -14,6 +14,10 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from typing import Any
 
+# Mesh CSV / thermal history temperatures are in Kelvin; user-facing plots,
+# exports and printed element info display Celsius.
+KELVIN_TO_CELSIUS = 273.15
+
 # Optional: matplotlib for plotting
 try:
     import matplotlib.pyplot as plt
@@ -210,6 +214,7 @@ def get_element_thermal_history(
 
 def extract_thermal_data(
     thermal_history: dict,
+    anchor: tuple[float, float] | None = None,
 ) -> tuple[list[float], list[float]]:
     """Extract plottable timestamps and temperatures from thermal history.
 
@@ -217,9 +222,16 @@ def extract_thermal_data(
 
     Args:
         thermal_history: Thermal history dictionary from get_element_thermal_history().
+        anchor: Optional ``(timestamp_s, temperature_K)`` to prepend at the
+            start of the curve — typically the element's deposition time
+            (``t1``) and material extrusion temperature (``temperature``)
+            from the mesh CSV. The anchor is only prepended when its
+            timestamp is at or before the first thermal-history sample, so
+            curves that already include the deposition point are left alone.
 
     Returns:
         Tuple of (timestamps, temperatures) lists ready for plotting.
+        Temperatures are in Kelvin (matching the source CSV).
     """
     timestamps = thermal_history.get("timestamps", [])
     temperatures = thermal_history.get("temperatures", [])
@@ -232,10 +244,21 @@ def extract_thermal_data(
     ]
 
     if not valid_data:
+        if anchor is not None:
+            return [anchor[0]], [anchor[1]]
         return [], []
 
     filtered_timestamps, filtered_temps = zip(*valid_data)
-    return list(filtered_timestamps), list(filtered_temps)
+    result_t = list(filtered_timestamps)
+    result_temp = list(filtered_temps)
+
+    if anchor is not None:
+        anchor_t, anchor_temp = anchor
+        if anchor_t <= result_t[0]:
+            result_t.insert(0, anchor_t)
+            result_temp.insert(0, anchor_temp)
+
+    return result_t, result_temp
 
 
 def plot_element_thermal_history(
@@ -257,7 +280,7 @@ def plot_element_thermal_history(
     """
     if not HAS_MATPLOTLIB:
         print("  Error: matplotlib is not installed.")
-        print("  Install with: pip install matplotlib")
+        print("  Install with: pip install -e '.[viz]'  (or '.[full]' for all extras)")
         return False
 
     if not elements_data:
@@ -268,10 +291,11 @@ def plot_element_thermal_history(
 
     for element_index, timestamps, temperatures in elements_data:
         label = f"Element {element_index}"
-        ax.plot(timestamps, temperatures, label=label, linewidth=1.5)
+        temps_c = [t - KELVIN_TO_CELSIUS for t in temperatures]
+        ax.plot(timestamps, temps_c, label=label, linewidth=1.5)
 
     ax.set_xlabel("Time (s)", fontsize=11)
-    ax.set_ylabel("Temperature (K)", fontsize=11)
+    ax.set_ylabel("Temperature (°C)", fontsize=11)
 
     if title:
         ax.set_title(title, fontsize=12)
@@ -305,8 +329,12 @@ def print_element_info(element: dict) -> None:
     print(f"    Layer:       {element.get('layer')}")
     print(f"    Partition:   {element.get('partition')}")
     print(f"    Event:       {element.get('event')}")
-    print(f"    Temperature: {element.get('temperature')} K")
-    print(f"    Env Temp:    {element.get('environment_temperature')} K")
+    temp_k = element.get("temperature")
+    env_k = element.get("environment_temperature")
+    temp_c = f"{temp_k - KELVIN_TO_CELSIUS:.2f}" if temp_k is not None else "N/A"
+    env_c = f"{env_k - KELVIN_TO_CELSIUS:.2f}" if env_k is not None else "N/A"
+    print(f"    Temperature: {temp_c} °C")
+    print(f"    Env Temp:    {env_c} °C")
     print(f"    Fan Speed:   {element.get('fan_speed')}")
     print(f"    Height:      {element.get('height')} m")
     print(f"    Width:       {element.get('width')} m")
@@ -333,18 +361,22 @@ def export_thermal_data_csv(
         True on success, False on error.
 
     Output CSV format:
-        element_index, timestamp_s, temperature_K
-        5119, 0.0, 485.2
-        5119, 0.1, 480.1
+        element_index, timestamp_s, temperature_C
+        5119, 0.0, 212.05
+        5119, 0.1, 206.95
         ...
+
+    Note:
+        Input ``elements_data`` carries temperatures in Kelvin (matching the
+        thermal-history CSV). They are converted to Celsius on export.
     """
     try:
         with open(output_path, "w", newline="", encoding="utf-8") as f:
             writer = csv.writer(f)
-            writer.writerow(["element_index", "timestamp_s", "temperature_K"])
+            writer.writerow(["element_index", "timestamp_s", "temperature_C"])
             for elem_idx, timestamps, temps in elements_data:
                 for t, temp in zip(timestamps, temps):
-                    writer.writerow([elem_idx, t, temp])
+                    writer.writerow([elem_idx, t, temp - KELVIN_TO_CELSIUS])
         print(f"  Exported thermal data to: {output_path}")
         return True
     except Exception as e:

@@ -122,7 +122,7 @@ def create_optimization(
     if errors:
         raise RuntimeError(f"CreateOptimization error: {'; '.join(errors)} (trace: {trace_id})")
 
-    opt = data["createOptimization"]
+    opt = data["createOptimizationV2"]
     opt_id = opt["id"]
     print(f"  Optimization created: id={opt_id}, name={opt['name']}")
     return opt_id

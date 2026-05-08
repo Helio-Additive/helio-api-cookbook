@@ -168,7 +168,7 @@ def main():
         print("    Try a different layer number, or contact Helio to enable")
         print("    thermal history for your account.")
         print("  - Invalid ID: Check that the simulation/optimization exists")
-        print("  - pyarrow not installed: pip install pyarrow")
+        print("  - pyarrow not installed: pip install -e '.[thermal]' (or '.[full]')")
 
 
 if __name__ == "__main__":

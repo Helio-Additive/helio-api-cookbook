@@ -244,6 +244,54 @@ def _prompt_optimization_settings(client, gcode_id):
     return min_vel, max_vel, min_vol, max_vol, from_layer, to_layer
 
 
+def _prompt_thermal_history_resolution():
+    """Prompt for optional thermal history resolution overrides.
+
+    These are enterprise features that control the resolution of exported
+    thermal history data. Most users should use the default resolution.
+
+    Returns:
+        (datapoints_per_element, length_multiplier) tuple. Either may be None.
+    """
+    print("\n  Thermal history resolution (optional - enterprise feature):")
+    print("    Use these overrides only if the default resolution is not high enough.")
+    print("    IMPORTANT: For these overrides to take effect, Helio must enable the")
+    print("    account-level setting `disable_elements_active_range: true` for your")
+    print("    account. This is NOT a simulationSettings field — contact Helio Additive")
+    print("    to request it. Without this account setting, your override values may")
+    print("    have no visible impact on the exported thermal history.")
+    print("    1. Use default resolution (Recommended)")
+    print("    2. Override resolution settings")
+    choice = input("  Choice [1/2]: ").strip()
+
+    if choice != "2":
+        return None, None
+
+    print("\n  Enter values (press Enter to skip):\n")
+
+    datapoints_per_element = None
+    val = input(
+        "    temperatureHistoryDatapointsPerElement (suggested: 1000, Enter to skip): "
+    ).strip()
+    if val:
+        try:
+            datapoints_per_element = int(val)
+        except ValueError:
+            print("  Invalid number, skipping.")
+
+    length_multiplier = None
+    val = input(
+        "    temperatureHistoryLengthMultiplier (suggested: 10, Enter to skip): "
+    ).strip()
+    if val:
+        try:
+            length_multiplier = int(val)
+        except ValueError:
+            print("  Invalid number, skipping.")
+
+    return datapoints_per_element, length_multiplier
+
+
 # =============================================================================
 # Execution Helpers
 # =============================================================================
@@ -252,12 +300,17 @@ def _prompt_optimization_settings(client, gcode_id):
 def _execute_simulation(client, gcode_id, file_path):
     """Run a single simulation cycle."""
     chamber_temp, bed_temp = _prompt_temperatures()
+    dp_per_elem, len_mult = _prompt_thermal_history_resolution()
 
     print("\n  Summary:")
     print(f"    File:     {os.path.basename(file_path)}")
     print(f"    GCode ID: {gcode_id}")
     print(f"    Chamber:  {format_temp_display(chamber_temp)}")
     print(f"    Bed:      {format_temp_display(bed_temp)}")
+    if dp_per_elem is not None:
+        print(f"    Thermal history datapoints/element: {dp_per_elem}")
+    if len_mult is not None:
+        print(f"    Thermal history length multiplier:   {len_mult}")
     confirm = input("\n  Proceed? [Y/n]: ").strip().lower()
     if confirm == "n":
         print("  Cancelled.")
@@ -265,7 +318,11 @@ def _execute_simulation(client, gcode_id, file_path):
 
     try:
         print("\n  --- Running Simulation ---")
-        sim_id, result, thermal_url = run_simulation(client, gcode_id, chamber_temp, bed_temp)
+        sim_id, result, thermal_url = run_simulation(
+            client, gcode_id, chamber_temp, bed_temp,
+            temp_history_datapoints_per_element=dp_per_elem,
+            temp_history_length_multiplier=len_mult,
+        )
 
         if thermal_url:
             dl = input("\n  Download thermal index G-code? [Y/n]: ").strip().lower()
@@ -288,8 +345,13 @@ def _execute_optimization(client, gcode_id, material_id, file_path):
     )
 
     chamber_temp, bed_temp = _prompt_temperatures()
+    dp_per_elem, len_mult = _prompt_thermal_history_resolution()
 
-    sim_settings = compute_simulation_settings(chamber_temp, bed_temp)
+    sim_settings = compute_simulation_settings(
+        chamber_temp, bed_temp,
+        temp_history_datapoints_per_element=dp_per_elem,
+        temp_history_length_multiplier=len_mult,
+    )
     opt_settings = build_optimization_settings(
         print_priority=print_priority,
         optimize_outerwall=optimize_outerwall,
@@ -310,6 +372,10 @@ def _execute_optimization(client, gcode_id, material_id, file_path):
     print(f"    Layers:    {from_layer} to {to_layer_display}")
     print(f"    Chamber:   {format_temp_display(chamber_temp)}")
     print(f"    Bed:       {format_temp_display(bed_temp)}")
+    if dp_per_elem is not None:
+        print(f"    Thermal history datapoints/element: {dp_per_elem}")
+    if len_mult is not None:
+        print(f"    Thermal history length multiplier:   {len_mult}")
     confirm = input("\n  Proceed? [Y/n]: ").strip().lower()
     if confirm == "n":
         print("  Cancelled.")

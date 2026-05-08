@@ -43,6 +43,18 @@ def main():
     print("Uploading G-code...")
     gcode_id = upload_and_register_gcode(client, file_path, printer_id, material_id)
 
+    # To override thermal history resolution (enterprise feature), pass:
+    #   sim_id, result, thermal_url = run_simulation(
+    #       client, gcode_id,
+    #       temp_history_datapoints_per_element=1000,
+    #       temp_history_length_multiplier=10,
+    #   )
+    # Use these overrides only if the default resolution is not high enough.
+    # IMPORTANT: For these overrides to take effect, Helio must enable the
+    # account-level setting `disable_elements_active_range: true` for your
+    # account. This is NOT a simulationSettings field — contact Helio Additive
+    # to request it. Without this account setting, your override values may
+    # have no visible impact on the exported thermal history.
     print("Running simulation...")
     sim_id, result, thermal_url = run_simulation(client, gcode_id)
 
