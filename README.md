@@ -10,7 +10,8 @@ Requires **Python 3.10 or newer**. macOS users: the system `python3` is 3.9 — 
 
 ```bash
 # Create and activate a virtual environment (any Python 3.10+)
-python3.13 -m venv .venv
+# Verify your version first: `python3 --version` should be 3.10 or newer.
+python3 -m venv .venv
 source .venv/bin/activate
 pip install --upgrade pip
 

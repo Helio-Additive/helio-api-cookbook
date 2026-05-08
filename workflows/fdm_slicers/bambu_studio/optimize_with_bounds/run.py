@@ -45,10 +45,14 @@ def main():
     print("Uploading G-code...")
     gcode_id = upload_and_register_gcode(client, file_path, printer_id, material_id)
 
-    # Customize these settings for your use case
-    # To override thermal history resolution (enterprise feature), add:
-    #   temp_history_datapoints_per_element=1000,
-    #   temp_history_length_multiplier=10,
+    # Customize these settings for your use case.
+    # To override thermal history resolution (enterprise feature), pass the
+    # overrides to compute_simulation_settings:
+    #   sim_settings = compute_simulation_settings(
+    #       chamber_temp=35, bed_temp=60,
+    #       temp_history_datapoints_per_element=1000,
+    #       temp_history_length_multiplier=10,
+    #   )
     # Use these overrides only if the default resolution is not high enough.
     # IMPORTANT: For these overrides to take effect, Helio must enable the
     # account-level setting `disable_elements_active_range: true` for your

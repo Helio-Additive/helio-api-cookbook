@@ -167,6 +167,7 @@ def download_thermal_history_as_csv(
         convert_parquet_to_csv(parquet_path, csv_path)
     else:
         print("  Parquet file saved. Install pyarrow to convert to CSV.")
+        print("  Run: pip install -e '.[thermal]'  (or '.[full]' for all extras)")
 
 
 def get_simulation_mesh_url(client: HelioClient, sim_id: str) -> str | None:
@@ -282,4 +283,5 @@ def download_mesh_as_csv(
         return csv_path
     else:
         print("  Parquet file saved. Install pyarrow to convert to CSV.")
+        print("  Run: pip install -e '.[thermal]'  (or '.[full]' for all extras)")
         return parquet_path

@@ -223,7 +223,7 @@ def main():
         print()
         print("The plot shows how temperature changes over time after deposition:")
         print()
-        print("  - Y-axis: Temperature in Kelvin")
+        print("  - Y-axis: Temperature in °C")
         print("  - X-axis: Time in seconds")
         print()
         print("A typical cooling curve shows:")
