@@ -146,7 +146,7 @@ def main():
         print("Common issues:")
         print("  - 404 error: Enterprise feature not enabled for your account")
         print("  - Invalid ID: Check that the simulation/optimization exists")
-        print("  - pyarrow not installed: pip install pyarrow")
+        print("  - pyarrow not installed: pip install -e '.[thermal]' (or '.[full]')")
 
 
 if __name__ == "__main__":

@@ -109,7 +109,7 @@ def convert_parquet_to_csv(parquet_path: str, csv_path: str) -> bool:
     """
     if not HAS_PYARROW:
         print("  Warning: pyarrow not installed. Cannot convert Parquet to CSV.")
-        print("  Install with: pip install pyarrow")
+        print("  Install with: pip install -e '.[thermal]'  (or '.[full]' for all extras)")
         return False
 
     table = pq.read_table(parquet_path)

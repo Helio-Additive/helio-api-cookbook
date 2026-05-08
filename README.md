@@ -6,9 +6,16 @@ This is a community cookbook of portable workflow patterns — not an official S
 
 ## Quick Start
 
+Requires **Python 3.10 or newer**. macOS users: the system `python3` is 3.9 — install a newer Python via Homebrew (`brew install python@3.13`) or pyenv first.
+
 ```bash
-# Install
-pip install -e .
+# Create and activate a virtual environment (any Python 3.10+)
+python3.13 -m venv .venv
+source .venv/bin/activate
+pip install --upgrade pip
+
+# Install with all extras (recommended for first-time users)
+pip install -e ".[full]"
 
 # Set your Personal Access Token
 export HELIO_PAT="your-token-here"
@@ -16,6 +23,8 @@ export HELIO_PAT="your-token-here"
 # Run a workflow
 python workflows/fdm_slicers/bambu_studio/simulate_from_gcode/run.py model.gcode <printer_id> <material_id>
 ```
+
+The `[full]` extra adds `matplotlib` and `pyarrow`, needed for thermal-history plotting and parquet conversion. Use `pip install -e .` for the lean install if you only need the basic CLI and FDM workflow scripts.
 
 ## Getting Started
 

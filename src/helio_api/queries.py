@@ -45,8 +45,8 @@ query GcodeV2($id: ID!) {
 """
 
 MUTATION_CREATE_SIMULATION = """
-mutation CreateSimulation($input: CreateSimulationInput!) {
-  createSimulation(input: $input) {
+mutation CreateSimulation($input: CreateSimulationInputV2!) {
+  createSimulationV2(input: $input) {
     id
     name
     progress
@@ -93,8 +93,8 @@ query Simulation($id: ID!) {
 """
 
 MUTATION_CREATE_OPTIMIZATION = """
-mutation CreateOptimization($input: CreateOptimizationInput!) {
-  createOptimization(input: $input) {
+mutation CreateOptimization($input: CreateOptimizationInputV2!) {
+  createOptimizationV2(input: $input) {
     id
     name
     progress

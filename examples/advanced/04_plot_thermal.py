@@ -17,7 +17,7 @@ What you'll learn:
     - Interpreting thermal cooling curves
 
 Prerequisites:
-    - pip install matplotlib
+    - pip install -e '.[viz]'  (or '.[full]' for all extras)
     - Thermal history CSV from step 3 (03_download_thermal.py)
     - Element INDEX from the visualization (step 2)
 
@@ -74,10 +74,10 @@ def main():
         print("ERROR: matplotlib is not installed.")
         print()
         print("Install with:")
-        print("  pip install matplotlib")
+        print("  pip install -e '.[viz]'")
         print()
         print("Or install all optional dependencies:")
-        print("  pip install helio-api-cookbook[full]")
+        print("  pip install -e '.[full]'")
         return
 
     # -------------------------------------------------------------------------
@@ -174,8 +174,9 @@ def main():
     # -------------------------------------------------------------------------
     # Step 4.5: Create the plot
     # -------------------------------------------------------------------------
-    # The plot shows temperature (Kelvin) on the Y-axis and time (seconds)
+    # The plot shows temperature (°C) on the Y-axis and time (seconds)
     # on the X-axis. Each element gets a different colored line.
+    # Source thermal history is in Kelvin; the plot library converts to °C.
 
     print("\nCreating plot...")
 
@@ -213,7 +214,7 @@ def main():
             print("CSV format:")
             print("  - element_index: Which element this row is for")
             print("  - timestamp_s: Time in seconds")
-            print("  - temperature_K: Temperature in Kelvin")
+            print("  - temperature_C: Temperature in degrees Celsius")
 
         print()
         print("=" * 60)
