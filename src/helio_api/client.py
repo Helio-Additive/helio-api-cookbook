@@ -6,6 +6,7 @@ handling, plus shared utility functions used across the library.
 """
 
 import datetime
+import secrets
 import os
 import sys
 
@@ -134,6 +135,11 @@ def print_progress_bar(progress: float, width: int = 40) -> None:
 
 
 def generate_timestamped_name() -> str:
-    """Generate a timestamped name like ``PythonScript 2025-03-12T14:23:45``."""
+    """Generate a unique name like ``PythonScript 2025-03-12T14:23:45.123 8f69``.
+
+    The API rejects duplicate simulation/optimization names, and parallel runs
+    can create several in the same second, so the name carries milliseconds
+    and a short random suffix.
+    """
     now = datetime.datetime.utcnow()
-    return f"PythonScript {now.strftime('%Y-%m-%dT%H:%M:%S')}"
+    return f"PythonScript {now.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3]} {secrets.token_hex(2)}"
