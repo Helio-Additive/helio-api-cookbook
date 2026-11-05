@@ -6,8 +6,8 @@ handling, plus shared utility functions used across the library.
 """
 
 import datetime
-import secrets
 import os
+import secrets
 import sys
 
 import requests
